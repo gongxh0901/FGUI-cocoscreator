@@ -221,8 +221,8 @@ namespace fgui {
             this._content.spriteFrame = value;
             this._content.type = cc.Sprite.Type.SIMPLE;
             if (value != null) {
-                this.sourceWidth = value.getRect().width;
-                this.sourceHeight = value.getRect().height;
+                this.sourceWidth = value.getOriginalSize().width;
+                this.sourceHeight = value.getOriginalSize().height;
             }
             else {
                 this.sourceWidth = this.sourceHeight = 0;

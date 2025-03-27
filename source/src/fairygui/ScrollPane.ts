@@ -205,6 +205,7 @@ namespace fgui {
         }
 
         protected onDestroy(): void {
+            this.cancelDragging();
             delete this._pageController;
 
             if (this._hzScrollBar)
@@ -577,8 +578,8 @@ namespace fgui {
                 else if (rect.y + rect.height > bottom) {
                     if (this._pageMode)
                         this.setPosY(Math.floor(rect.y / this._pageSize.y) * this._pageSize.y, ani);
-                    else if (rect.height <= this._viewSize.y / 2)
-                        this.setPosY(rect.y + rect.height * 2 - this._viewSize.y, ani);
+                    // else if (rect.height <= this._viewSize.y / 2)
+                    //     this.setPosY(rect.y + rect.height * 2 - this._viewSize.y, ani);
                     else
                         this.setPosY(rect.y + rect.height - this._viewSize.y, ani);
                 }
@@ -594,13 +595,49 @@ namespace fgui {
                 else if (rect.x + rect.width > right) {
                     if (this._pageMode)
                         this.setPosX(Math.floor(rect.x / this._pageSize.x) * this._pageSize.x, ani);
-                    else if (rect.width <= this._viewSize.x / 2)
-                        this.setPosX(rect.x + rect.width * 2 - this._viewSize.x, ani);
+                    // else if (rect.width <= this._viewSize.x / 2)
+                    //     this.setPosX(rect.x + rect.width * 2 - this._viewSize.x, ani);
                     else
                         this.setPosX(rect.x + rect.width - this._viewSize.x, ani);
                 }
             }
 
+            if (!ani && this._needRefresh)
+                this.refresh();
+        }
+
+        public scrollToViewCenter(target: any, ani?: boolean): void {
+            this._owner.ensureBoundsCorrect();
+            if (this._needRefresh)
+                this.refresh();
+            var rect;
+            if (target instanceof fgui.GObject) {
+                if (target.parent != this._owner) {
+                    target.parent.localToGlobalRect(target.x, target.y, target.width, target.height, s_rect);
+                    rect = this._owner.globalToLocalRect(s_rect.x, s_rect.y, s_rect.width, s_rect.height, s_rect);
+                }
+                else {
+                    rect = s_rect;
+                    rect.x = target.x;
+                    rect.y = target.y;
+                    rect.width = target.width;
+                    rect.height = target.height;
+                }
+            }
+            else
+                rect = target;
+            if (this._overlapSize.y > 0) {
+                if (this._pageMode)
+                    this.setPosY(Math.floor(Math.max(rect.center.y - this.viewHeight * 0.5, 0) / this._pageSize.y) * this._pageSize.y, ani);
+                else
+                    this.setPosY(Math.max(rect.center.y - this.viewHeight * 0.5, 0), ani);
+            }
+            if (this._overlapSize.x > 0) {
+                if (this._pageMode)
+                    this.setPosX(Math.floor(Math.max(rect.center.x - this.viewWidth * 0.5, 0) / this._pageSize.x) * this._pageSize.x, ani);
+                else
+                    this.setPosX(Math.max(rect.center.x - this.viewWidth * 0.5, 0), ani);
+            }
             if (!ani && this._needRefresh)
                 this.refresh();
         }

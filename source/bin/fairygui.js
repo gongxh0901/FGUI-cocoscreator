@@ -759,6 +759,8 @@ window.__extends = (this && this.__extends) || (function () {
             this._rawWidth = 0;
             this._rawHeight = 0;
             this._sizePercentInGroup = 0;
+            this._initialScaleX = 1;
+            this._initialScaleY = 1;
             this._node = new cc.Node();
             if (GObject._defaultGroupIndex == -1) {
                 GObject._defaultGroupIndex = 0;
@@ -990,6 +992,8 @@ window.__extends = (this && this.__extends) || (function () {
         });
         GObject.prototype.setScale = function (sx, sy) {
             if (this._node.scaleX != sx || this._node.scaleY != sy) {
+                this._initialScaleX = sx;
+                this._initialScaleY = sy;
                 this._node.setScale(sx, sy);
                 this.updateGear(2);
             }
@@ -1526,7 +1530,7 @@ window.__extends = (this && this.__extends) || (function () {
         };
         GObject.prototype.onDisable = function () {
         };
-        GObject.prototype.onUpdate = function () {
+        GObject.prototype.onUpdate = function (dt) {
         };
         GObject.prototype.onDestroy = function () {
         };
@@ -2937,6 +2941,7 @@ window.__extends = (this && this.__extends) || (function () {
                 child.node.parent = this._container;
                 this._children.push(child);
                 buffer.position = curPos + dataLen;
+                child["onAdapted"] && child["onAdapted"]();
             }
             buffer.seek(0, 3);
             this.relations.setup(buffer, true);
@@ -3270,6 +3275,7 @@ window.__extends = (this && this.__extends) || (function () {
             fgui.GRoot.inst.inputProcessor.simulateClick(this);
         };
         GButton.prototype.setState = function (val) {
+            var _this = this;
             if (this._buttonController)
                 this._buttonController.selectedPage = val;
             if (this._downEffect == 1) {
@@ -3297,13 +3303,25 @@ window.__extends = (this && this.__extends) || (function () {
                 if (val == GButton.DOWN || val == GButton.SELECTED_OVER || val == GButton.SELECTED_DISABLED) {
                     if (!this._downScaled) {
                         this._downScaled = true;
-                        this.setScale(this.scaleX * this._downEffectValue, this.scaleY * this._downEffectValue);
+                        this._tween && this._tween.stop();
+                        this._tween = cc.tween(this.node).to(0.05, { scaleX: this._initialScaleX * this._downEffectValue, scaleY: this._initialScaleY * this._downEffectValue }).call(function () {
+                            _this._tween && _this._tween.stop();
+                            _this._tween = null;
+                        }).start();
                     }
                 }
                 else {
                     if (this._downScaled) {
                         this._downScaled = false;
-                        this.setScale(this.scaleX / this._downEffectValue, this.scaleY / this._downEffectValue);
+                        this._tween && this._tween.stop();
+                        this._tween = cc.tween(this.node)
+                            .to(0.05, { scaleX: this._initialScaleX * 1.05, scaleY: this._initialScaleY * 1.05 })
+                            .to(0.02, { scaleX: this._initialScaleX, scaleY: this._initialScaleY })
+                            .call(function () {
+                            _this._tween && _this._tween.stop();
+                            _this._tween = null;
+                        })
+                            .start();
                     }
                 }
             }
@@ -3395,8 +3413,6 @@ window.__extends = (this && this.__extends) || (function () {
             this._soundVolumeScale = buffer.readFloat();
             this._downEffect = buffer.readByte();
             this._downEffectValue = buffer.readFloat();
-            if (this._downEffect == 2)
-                this.setPivot(0.5, 0.5, this.pivotAsAnchor);
             this._buttonController = this.getController("button");
             this._titleObject = this.getChild("title");
             this._iconObject = this.getChild("icon");
@@ -3535,6 +3551,13 @@ window.__extends = (this && this.__extends) || (function () {
             else {
                 if (this._relatedController)
                     this._relatedController.selectedPageId = this._relatedPageId;
+            }
+        };
+        GButton.prototype.reset_check_state = function () {
+            if (this._tween) {
+                this._tween.stop();
+                this._tween = null;
+                this.setScale(this._initialScaleX, this._initialScaleY);
             }
         };
         GButton.UP = "up";
@@ -5536,13 +5559,17 @@ window.__extends = (this && this.__extends) || (function () {
             if (this._scrollPane && this._scrollPane.isDragged)
                 return;
             var item = fgui.GObject.cast(evt.currentTarget);
+            if (!item.parent)
+                return;
             this.setSelectionOnEvent(item, evt);
             if (this._scrollPane && this.scrollItemToViewOnClick)
                 this._scrollPane.scrollToView(item, true);
             this.dispatchItemEvent(item, evt);
         };
         GList.prototype.dispatchItemEvent = function (item, evt) {
-            this._node.emit(fgui.Event.CLICK_ITEM, item, evt);
+            if (this._node && this._node.emit) {
+                this._node.emit(fgui.Event.CLICK_ITEM, item, evt);
+            }
         };
         GList.prototype.setSelectionOnEvent = function (item, evt) {
             if (!(item instanceof fgui.GButton) || this._selectionMode == fgui.ListSelectionMode.None)
@@ -5758,6 +5785,46 @@ window.__extends = (this && this.__extends) || (function () {
                         this._scrollPane.scrollToView(obj, ani, setFirst);
                     else if (this.parent && this.parent.scrollPane)
                         this.parent.scrollPane.scrollToView(obj, ani, setFirst);
+                }
+            }
+        };
+        GList.prototype.scrollToViewCenter = function (index, ani) {
+            if (this._virtual) {
+                if (this._numItems == 0)
+                    return;
+                this.checkVirtualList();
+                if (index >= this._virtualItems.length)
+                    throw "Invalid child index: " + index + ">" + this._virtualItems.length;
+                if (this._loop)
+                    index = Math.floor(this._firstIndex / this._numItems) * this._numItems + index;
+                var rect;
+                var ii = this._virtualItems[index];
+                var pos = 0;
+                var i;
+                if (this._layout == fgui.ListLayoutType.SingleColumn || this._layout == fgui.ListLayoutType.FlowHorizontal) {
+                    for (i = this._curLineItemCount - 1; i < index; i += this._curLineItemCount)
+                        pos += this._virtualItems[i].height + this._lineGap;
+                    rect = new cc.Rect(0, pos, this._itemSize.width, ii.height);
+                }
+                else if (this._layout == fgui.ListLayoutType.SingleRow || this._layout == fgui.ListLayoutType.FlowVertical) {
+                    for (i = this._curLineItemCount - 1; i < index; i += this._curLineItemCount)
+                        pos += this._virtualItems[i].width + this._columnGap;
+                    rect = new cc.Rect(pos, 0, ii.width, this._itemSize.height);
+                }
+                else {
+                    var page = index / (this._curLineItemCount * this._curLineItemCount2);
+                    rect = new cc.Rect(page * this.viewWidth + (index % this._curLineItemCount) * (ii.width + this._columnGap), (index / this._curLineItemCount) % this._curLineItemCount2 * (ii.height + this._lineGap), ii.width, ii.height);
+                }
+                if (this._scrollPane)
+                    this._scrollPane.scrollToViewCenter(rect, ani);
+            }
+            else {
+                var obj = this.getChildAt(index);
+                if (obj) {
+                    if (this._scrollPane)
+                        this._scrollPane.scrollToViewCenter(obj, ani);
+                    else if (this.parent && this.parent.scrollPane)
+                        this.parent.scrollPane.scrollToViewCenter(obj, ani);
                 }
             }
         };
@@ -7072,6 +7139,9 @@ window.__extends = (this && this.__extends) || (function () {
                 this._pool[url] = arr;
             }
             this._count++;
+            if (obj instanceof fgui.GButton) {
+                obj.reset_check_state();
+            }
             arr.push(obj);
         };
         return GObjectPool;
@@ -7308,8 +7378,8 @@ window.__extends = (this && this.__extends) || (function () {
                 this._content.spriteFrame = value;
                 this._content.type = cc.Sprite.Type.SIMPLE;
                 if (value != null) {
-                    this.sourceWidth = value.getRect().width;
-                    this.sourceHeight = value.getRect().height;
+                    this.sourceWidth = value.getOriginalSize().width;
+                    this.sourceHeight = value.getOriginalSize().height;
                 }
                 else {
                     this.sourceWidth = this.sourceHeight = 0;
@@ -8869,7 +8939,9 @@ window.__extends = (this && this.__extends) || (function () {
                 return;
             if (this._autoSize == fgui.AutoSizeType.Both || this._autoSize == fgui.AutoSizeType.Height) {
                 if (!this._sizeDirty) {
-                    this._node.emit(fgui.Event.SIZE_DELAY_CHANGE, this);
+                    if (this._node.emit) {
+                        this._node.emit(fgui.Event.SIZE_DELAY_CHANGE, this);
+                    }
                     this._sizeDirty = true;
                 }
             }
@@ -9385,27 +9457,14 @@ window.__extends = (this && this.__extends) || (function () {
         GRoot.prototype.showTooltipsWin = function (tooltipWin) {
             this.hideTooltips();
             this._tooltipWin = tooltipWin;
-            var pt = this.getTouchPosition();
-            pt.x += 10;
-            pt.y += 20;
-            this.globalToLocal(pt.x, pt.y, pt);
-            if (pt.x + this._tooltipWin.width > this.width) {
-                pt.x = pt.x - this._tooltipWin.width - 1;
-                if (pt.x < 0)
-                    pt.x = 10;
-            }
-            if (pt.y + this._tooltipWin.height > this.height) {
-                pt.y = pt.y - this._tooltipWin.height - 1;
-                if (pt.y < 0)
-                    pt.y = 10;
-            }
-            this._tooltipWin.setPosition(pt.x, pt.y);
             this.addChild(this._tooltipWin);
         };
         GRoot.prototype.hideTooltips = function () {
             if (this._tooltipWin) {
-                if (this._tooltipWin.parent)
+                if (this._tooltipWin.parent) {
                     this.removeChild(this._tooltipWin);
+                    this._tooltipWin["onTooltipsRemove"] && this._tooltipWin["onTooltipsRemove"]();
+                }
                 this._tooltipWin = null;
             }
         };
@@ -11720,6 +11779,7 @@ window.__extends = (this && this.__extends) || (function () {
             this.setSize(o.width, o.height);
         };
         ScrollPane.prototype.onDestroy = function () {
+            this.cancelDragging();
             delete this._pageController;
             if (this._hzScrollBar)
                 this._hzScrollBar.dispose();
@@ -12133,8 +12193,6 @@ window.__extends = (this && this.__extends) || (function () {
                 else if (rect.y + rect.height > bottom) {
                     if (this._pageMode)
                         this.setPosY(Math.floor(rect.y / this._pageSize.y) * this._pageSize.y, ani);
-                    else if (rect.height <= this._viewSize.y / 2)
-                        this.setPosY(rect.y + rect.height * 2 - this._viewSize.y, ani);
                     else
                         this.setPosY(rect.y + rect.height - this._viewSize.y, ani);
                 }
@@ -12150,11 +12208,44 @@ window.__extends = (this && this.__extends) || (function () {
                 else if (rect.x + rect.width > right) {
                     if (this._pageMode)
                         this.setPosX(Math.floor(rect.x / this._pageSize.x) * this._pageSize.x, ani);
-                    else if (rect.width <= this._viewSize.x / 2)
-                        this.setPosX(rect.x + rect.width * 2 - this._viewSize.x, ani);
                     else
                         this.setPosX(rect.x + rect.width - this._viewSize.x, ani);
                 }
+            }
+            if (!ani && this._needRefresh)
+                this.refresh();
+        };
+        ScrollPane.prototype.scrollToViewCenter = function (target, ani) {
+            this._owner.ensureBoundsCorrect();
+            if (this._needRefresh)
+                this.refresh();
+            var rect;
+            if (target instanceof fgui.GObject) {
+                if (target.parent != this._owner) {
+                    target.parent.localToGlobalRect(target.x, target.y, target.width, target.height, s_rect);
+                    rect = this._owner.globalToLocalRect(s_rect.x, s_rect.y, s_rect.width, s_rect.height, s_rect);
+                }
+                else {
+                    rect = s_rect;
+                    rect.x = target.x;
+                    rect.y = target.y;
+                    rect.width = target.width;
+                    rect.height = target.height;
+                }
+            }
+            else
+                rect = target;
+            if (this._overlapSize.y > 0) {
+                if (this._pageMode)
+                    this.setPosY(Math.floor(Math.max(rect.center.y - this.viewHeight * 0.5, 0) / this._pageSize.y) * this._pageSize.y, ani);
+                else
+                    this.setPosY(Math.max(rect.center.y - this.viewHeight * 0.5, 0), ani);
+            }
+            if (this._overlapSize.x > 0) {
+                if (this._pageMode)
+                    this.setPosX(Math.floor(Math.max(rect.center.x - this.viewWidth * 0.5, 0) / this._pageSize.x) * this._pageSize.x, ani);
+                else
+                    this.setPosX(Math.max(rect.center.x - this.viewWidth * 0.5, 0), ani);
             }
             if (!ani && this._needRefresh)
                 this.refresh();

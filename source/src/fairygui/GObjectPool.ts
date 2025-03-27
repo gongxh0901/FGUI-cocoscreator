@@ -51,6 +51,9 @@ namespace fgui {
             }
 
             this._count++;
+            if (obj instanceof fgui.GButton) {
+                obj.reset_check_state();
+            }
             arr.push(obj);
         }
     }

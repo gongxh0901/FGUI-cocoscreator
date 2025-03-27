@@ -468,7 +468,9 @@ namespace fgui {
 
             if (this._autoSize == AutoSizeType.Both || this._autoSize == AutoSizeType.Height) {
                 if (!this._sizeDirty) {
-                    this._node.emit(Event.SIZE_DELAY_CHANGE, this);
+                    if (this._node.emit) {
+                        this._node.emit(Event.SIZE_DELAY_CHANGE, this);
+                    }
                     this._sizeDirty = true;
                 }
             }

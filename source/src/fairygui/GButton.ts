@@ -25,6 +25,7 @@ namespace fgui {
         private _downScaled?: boolean;
         private _down: boolean;
         private _over: boolean;
+        private _tween: cc.Tween;
 
         public static UP: string = "up";
         public static DOWN: string = "down";
@@ -261,13 +262,25 @@ namespace fgui {
                 if (val == GButton.DOWN || val == GButton.SELECTED_OVER || val == GButton.SELECTED_DISABLED) {
                     if (!this._downScaled) {
                         this._downScaled = true;
-                        this.setScale(this.scaleX * this._downEffectValue, this.scaleY * this._downEffectValue);
+                        this._tween && this._tween.stop();
+                        this._tween = cc.tween(this.node).to(0.05, { scaleX: this._initialScaleX * this._downEffectValue, scaleY: this._initialScaleY * this._downEffectValue }).call(() => {
+                            this._tween && this._tween.stop();
+                            this._tween = null;
+                        }).start();
                     }
                 }
                 else {
                     if (this._downScaled) {
                         this._downScaled = false;
-                        this.setScale(this.scaleX / this._downEffectValue, this.scaleY / this._downEffectValue);
+                        this._tween && this._tween.stop();
+                        this._tween = cc.tween(this.node)
+                            .to(0.05, { scaleX: this._initialScaleX * 1.05, scaleY: this._initialScaleY * 1.05 })
+                            .to(0.02, { scaleX: this._initialScaleX, scaleY: this._initialScaleY })
+                            .call(() => {
+                                this._tween && this._tween.stop();
+                                this._tween = null;
+                            })
+                            .start();
                     }
                 }
             }
@@ -367,9 +380,8 @@ namespace fgui {
             this._soundVolumeScale = buffer.readFloat();
             this._downEffect = buffer.readByte();
             this._downEffectValue = buffer.readFloat();
-            if (this._downEffect == 2)
-                this.setPivot(0.5, 0.5, this.pivotAsAnchor);
-
+            // if (this._downEffect == 2)
+            //     this.setPivot(0.5, 0.5, this.pivotAsAnchor);
             this._buttonController = this.getController("button");
             this._titleObject = this.getChild("title");
             this._iconObject = this.getChild("icon");
@@ -535,6 +547,14 @@ namespace fgui {
             else {
                 if (this._relatedController)
                     this._relatedController.selectedPageId = this._relatedPageId;
+            }
+        }
+
+        public reset_check_state(): void {
+            if (this._tween) {
+                this._tween.stop();
+                this._tween = null;
+                this.setScale(this._initialScaleX, this._initialScaleY);
             }
         }
     }

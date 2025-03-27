@@ -307,31 +307,33 @@ namespace fgui {
 
             this._tooltipWin = tooltipWin;
 
-            let pt: cc.Vec2 = this.getTouchPosition();
-            pt.x += 10;
-            pt.y += 20;
+            // let pt: cc.Vec2 = this.getTouchPosition();
+            // pt.x += 10;
+            // pt.y += 20;
 
-            this.globalToLocal(pt.x, pt.y, pt);
+            // this.globalToLocal(pt.x, pt.y, pt);
 
-            if (pt.x + this._tooltipWin.width > this.width) {
-                pt.x = pt.x - this._tooltipWin.width - 1;
-                if (pt.x < 0)
-                    pt.x = 10;
-            }
-            if (pt.y + this._tooltipWin.height > this.height) {
-                pt.y = pt.y - this._tooltipWin.height - 1;
-                if (pt.y < 0)
-                    pt.y = 10;
-            }
+            // if (pt.x + this._tooltipWin.width > this.width) {
+            //     pt.x = pt.x - this._tooltipWin.width - 1;
+            //     if (pt.x < 0)
+            //         pt.x = 10;
+            // }
+            // if (pt.y + this._tooltipWin.height > this.height) {
+            //     pt.y = pt.y - this._tooltipWin.height - 1;
+            //     if (pt.y < 0)
+            //         pt.y = 10;
+            // }
 
-            this._tooltipWin.setPosition(pt.x, pt.y);
+            // this._tooltipWin.setPosition(pt.x, pt.y);
             this.addChild(this._tooltipWin);
         }
 
         public hideTooltips(): void {
             if (this._tooltipWin) {
-                if (this._tooltipWin.parent)
+                if (this._tooltipWin.parent) {
                     this.removeChild(this._tooltipWin);
+                    this._tooltipWin["onTooltipsRemove"] && this._tooltipWin["onTooltipsRemove"]();
+                }
                 this._tooltipWin = null;
             }
         }
@@ -370,7 +372,7 @@ namespace fgui {
                 this.removeChild(this._modalLayer);
         }
 
-        private onTouchBegin_1(evt: Event): void {
+        public onTouchBegin_1(evt: Event): void {
             if (this._tooltipWin)
                 this.hideTooltips();
 

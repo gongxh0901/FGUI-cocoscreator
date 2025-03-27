@@ -286,6 +286,8 @@ declare namespace fgui {
         _underConstruct: boolean;
         _gearLocked?: boolean;
         _sizePercentInGroup: number;
+        _initialScaleX: number;
+        _initialScaleY: number;
         _touchDisabled?: boolean;
         _partner: GObjectPartner;
         _treeNode?: GTreeNode;
@@ -400,7 +402,7 @@ declare namespace fgui {
         dispose(): void;
         protected onEnable(): void;
         protected onDisable(): void;
-        protected onUpdate(): void;
+        protected onUpdate(dt: number): void;
         protected onDestroy(): void;
         onClick(listener: Function, target?: any): void;
         onceClick(listener: Function, target?: any): void;
@@ -578,6 +580,7 @@ declare namespace fgui {
         private _downScaled?;
         private _down;
         private _over;
+        private _tween;
         static UP: string;
         static DOWN: string;
         static OVER: string;
@@ -630,6 +633,7 @@ declare namespace fgui {
         private onTouchBegin_1;
         private onTouchEnd_1;
         private onClick_1;
+        reset_check_state(): void;
     }
 }
 declare namespace fgui {
@@ -907,6 +911,7 @@ declare namespace fgui {
         private updateSelectionController;
         getSnappingPosition(xValue: number, yValue: number, resultPoint?: cc.Vec2): cc.Vec2;
         scrollToView(index: number, ani?: boolean, setFirst?: boolean): void;
+        scrollToViewCenter(index: number, ani?: boolean): void;
         getFirstChildInView(): number;
         childIndexToItemIndex(index: number): number;
         itemIndexToChildIndex(index: number): number;
@@ -1311,7 +1316,7 @@ declare namespace fgui {
         set volumeScale(value: number);
         playOneShotSound(clip: cc.AudioClip, volumeScale?: number): void;
         private adjustModalLayer;
-        private onTouchBegin_1;
+        onTouchBegin_1(evt: Event): void;
         private onWinResize;
         handlePositionChanged(): void;
         private updateContentScaleLevel;
@@ -1753,6 +1758,7 @@ declare namespace fgui {
         scrollLeft(ratio?: number, ani?: boolean): void;
         scrollRight(ratio?: number, ani?: boolean): void;
         scrollToView(target: any, ani?: boolean, setFirst?: boolean): void;
+        scrollToViewCenter(target: any, ani?: boolean): void;
         isChildInView(obj: GObject): boolean;
         cancelDragging(): void;
         lockHeader(size: number): void;

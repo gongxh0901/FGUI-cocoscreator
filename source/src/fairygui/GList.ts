@@ -624,6 +624,8 @@ namespace fgui {
                 return;
 
             var item: GObject = GObject.cast(evt.currentTarget);
+            if (!item.parent)
+                return;
             this.setSelectionOnEvent(item, evt);
 
             if (this._scrollPane && this.scrollItemToViewOnClick)
@@ -633,7 +635,9 @@ namespace fgui {
         }
 
         protected dispatchItemEvent(item: GObject, evt: Event): void {
-            this._node.emit(Event.CLICK_ITEM, item, evt);
+            if (this._node && this._node.emit) {
+                this._node.emit(Event.CLICK_ITEM, item, evt);
+            }
         }
 
         private setSelectionOnEvent(item: GObject, evt: Event): void {
@@ -873,6 +877,47 @@ namespace fgui {
                         this._scrollPane.scrollToView(obj, ani, setFirst);
                     else if (this.parent && this.parent.scrollPane)
                         this.parent.scrollPane.scrollToView(obj, ani, setFirst);
+                }
+            }
+        }
+
+        public scrollToViewCenter(index: number, ani?: boolean): void {
+            if (this._virtual) {
+                if (this._numItems == 0)
+                    return;
+                this.checkVirtualList();
+                if (index >= this._virtualItems.length)
+                    throw "Invalid child index: " + index + ">" + this._virtualItems.length;
+                if (this._loop)
+                    index = Math.floor(this._firstIndex / this._numItems) * this._numItems + index;
+                var rect;
+                var ii = this._virtualItems[index];
+                var pos = 0;
+                var i;
+                if (this._layout == fgui.ListLayoutType.SingleColumn || this._layout == fgui.ListLayoutType.FlowHorizontal) {
+                    for (i = this._curLineItemCount - 1; i < index; i += this._curLineItemCount)
+                        pos += this._virtualItems[i].height + this._lineGap;
+                    rect = new cc.Rect(0, pos, this._itemSize.width, ii.height);
+                }
+                else if (this._layout == fgui.ListLayoutType.SingleRow || this._layout == fgui.ListLayoutType.FlowVertical) {
+                    for (i = this._curLineItemCount - 1; i < index; i += this._curLineItemCount)
+                        pos += this._virtualItems[i].width + this._columnGap;
+                    rect = new cc.Rect(pos, 0, ii.width, this._itemSize.height);
+                }
+                else {
+                    var page = index / (this._curLineItemCount * this._curLineItemCount2);
+                    rect = new cc.Rect(page * this.viewWidth + (index % this._curLineItemCount) * (ii.width + this._columnGap), (index / this._curLineItemCount) % this._curLineItemCount2 * (ii.height + this._lineGap), ii.width, ii.height);
+                }
+                if (this._scrollPane)
+                    this._scrollPane.scrollToViewCenter(rect, ani);
+            }
+            else {
+                var obj = this.getChildAt(index);
+                if (obj) {
+                    if (this._scrollPane)
+                        this._scrollPane.scrollToViewCenter(obj, ani);
+                    else if (this.parent && this.parent.scrollPane)
+                        this.parent.scrollPane.scrollToViewCenter(obj, ani);
                 }
             }
         }

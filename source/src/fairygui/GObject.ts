@@ -50,6 +50,8 @@ namespace fgui {
         public _underConstruct: boolean;
         public _gearLocked?: boolean;
         public _sizePercentInGroup: number = 0;
+        public _initialScaleX: number = 1;
+        public _initialScaleY: number = 1;
         public _touchDisabled?: boolean;
         public _partner: GObjectPartner;
         public _treeNode?: GTreeNode;
@@ -280,6 +282,8 @@ namespace fgui {
 
         public setScale(sx: number, sy: number) {
             if (this._node.scaleX != sx || this._node.scaleY != sy) {
+                this._initialScaleX = sx;
+                this._initialScaleY = sy;
                 this._node.setScale(sx, sy);
 
                 this.updateGear(2);
@@ -737,7 +741,7 @@ namespace fgui {
         protected onDisable() {
         }
 
-        protected onUpdate() {
+        protected onUpdate(dt: number) {
         }
 
         protected onDestroy() {

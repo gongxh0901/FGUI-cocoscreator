@@ -1121,6 +1121,7 @@ namespace fgui {
                 this._children.push(child);
 
                 buffer.position = curPos + dataLen;
+                child["onAdapted"] && child["onAdapted"]();
             }
 
             buffer.seek(0, 3);
