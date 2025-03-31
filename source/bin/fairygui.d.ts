@@ -1247,6 +1247,7 @@ declare namespace fgui {
     }
     class GRichTextField extends GTextField {
         _richText: cc.RichText;
+        private _outlineWidth;
         private _bold;
         private _italics;
         private _underline;
@@ -1262,6 +1263,8 @@ declare namespace fgui {
         set bold(value: boolean);
         get italic(): boolean;
         set italic(value: boolean);
+        get stroke(): number;
+        set stroke(value: number);
         protected markSizeChanged(): void;
         protected updateText(): void;
         protected updateFont(): void;
