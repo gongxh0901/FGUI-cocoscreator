@@ -8991,6 +8991,7 @@ window.__extends = (this && this.__extends) || (function () {
         __extends(GRichTextField, _super);
         function GRichTextField() {
             var _this = _super.call(this) || this;
+            _this._outlineWidth = 0;
             _this._node.name = "GRichTextField";
             _this._touchDisabled = false;
             _this.linkUnderline = fgui.UIConfig.linkUnderline;
@@ -9051,6 +9052,17 @@ window.__extends = (this && this.__extends) || (function () {
             enumerable: false,
             configurable: true
         });
+        Object.defineProperty(GRichTextField.prototype, "stroke", {
+            get: function () {
+                return this._outlineWidth || 0;
+            },
+            set: function (value) {
+                this._outlineWidth = value;
+                this.updateText();
+            },
+            enumerable: false,
+            configurable: true
+        });
         GRichTextField.prototype.markSizeChanged = function () {
         };
         GRichTextField.prototype.updateText = function () {
@@ -9072,6 +9084,9 @@ window.__extends = (this && this.__extends) || (function () {
             if (this._grayed)
                 c = fgui.ToolSet.toGrayed(c);
             text2 = "<color=" + c.toHEX("#rrggbb") + ">" + text2 + "</color>";
+            if (this._strokeColor && this._outlineWidth > 0) {
+                text2 = "<outline color=" + this._strokeColor.toCSS("#rrggbb") + " width=" + this._outlineWidth + ">" + text2 + "</outline>";
+            }
             if (this._autoSize == fgui.AutoSizeType.Both) {
                 if (this._richText.maxWidth != 0)
                     this._richText.maxWidth = 0;

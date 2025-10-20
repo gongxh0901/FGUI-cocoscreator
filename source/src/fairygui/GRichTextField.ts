@@ -22,7 +22,7 @@ namespace fgui {
 
     export class GRichTextField extends GTextField {
         public _richText: cc.RichText;
-
+        private _outlineWidth: number = 0;
         private _bold: boolean;
         private _italics: boolean;
         private _underline: boolean;
@@ -89,6 +89,15 @@ namespace fgui {
             }
         }
 
+        public get stroke(): number {
+            return this._outlineWidth || 0;
+        }
+
+        public set stroke(value: number) {
+            this._outlineWidth = value;
+            this.updateText();
+        }
+
         protected markSizeChanged(): void {
             //RichText貌似没有延迟重建文本，所以这里不需要
         }
@@ -116,6 +125,10 @@ namespace fgui {
             if (this._grayed)
                 c = ToolSet.toGrayed(c);
             text2 = "<color=" + c.toHEX("#rrggbb") + ">" + text2 + "</color>";
+
+            if (this._strokeColor && this._outlineWidth > 0) {
+                text2 = `<outline color=${this._strokeColor.toCSS("#rrggbb")} width=${this._outlineWidth}>${text2}</outline>`;
+            }
 
             if (this._autoSize == AutoSizeType.Both) {
                 if (this._richText.maxWidth != 0)
