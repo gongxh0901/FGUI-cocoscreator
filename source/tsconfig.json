@@ -5,7 +5,7 @@
     "module": "es6",
     "strict": true,
     "strictNullChecks": false,
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "skipLibCheck": true,
   },
   "include": [
