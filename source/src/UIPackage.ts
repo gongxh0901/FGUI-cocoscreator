@@ -1,12 +1,12 @@
-import { Asset, assetManager, AssetManager, AudioClip, BitmapFont, BufferAsset, CCClass, ccenum, CCObject, dragonBones, ImageAsset, LabelAtlas, path, Rect, resources, Size, sp, SpriteFrame, Texture2D, Vec2 } from "cc";
-import PathUtils = path;
+import { Asset, assetManager, AssetManager, AudioClip, BitmapFont, BufferAsset, dragonBones, ImageAsset, path, Rect, resources, Size, sp, SpriteFrame, Texture2D, Vec2 } from "cc";
+import { Frame } from "./display/MovieClip";
+import { PixelHitTestData } from "./event/HitTest";
 import { ObjectType, PackageItemType } from "./FieldTypes";
 import { constructingDepth, GObject } from "./GObject";
 import { PackageItem } from "./PackageItem";
 import { TranslationHelper } from "./TranslationHelper";
 import { ByteBuffer } from "./utils/ByteBuffer";
-import { PixelHitTestData } from "./event/HitTest";
-import { Frame } from "./display/MovieClip";
+import PathUtils = path;
 
 type PackageDependency = { id: string, name: string };
 
@@ -22,6 +22,7 @@ export class UIPackage {
     private _branches: Array<string>;
     public _branchIndex: number;
     private _bundle: AssetManager.Bundle;
+    private _pathKey: string;
 
     public constructor() {
         this._items = [];
@@ -64,15 +65,35 @@ export class UIPackage {
     }
 
     /**
-     * 注册一个包。包的所有资源必须放在resources下，且已经预加载。
-     * @param path 相对 resources 的路径。
+     * 注册一个包。包的资源从Asset Bundle获取，且已经预加载。
+     * @param bundle Asset Bundle 对象.
+     * @param path 资源相对 Asset Bundle 目录的路径.
      */
-    public static addPackage(path: string): UIPackage {
-        let pkg: UIPackage = _instById[path];
+    public static addPackage(bundle: AssetManager.Bundle, path: string): UIPackage;
+    /**
+     * 注册一个包。包的资源从resources获取，且已经预加载。
+     * @param path 资源相对 resources 的路径。
+     */
+    public static addPackage(path: string): UIPackage;
+    public static addPackage(...args: any[]): UIPackage {
+        let bundle: AssetManager.Bundle;
+        let path: string;
+        if (args[0] instanceof AssetManager.Bundle) {
+            bundle = args[0];
+            path = args[1];
+        }
+        else {
+            path = args[0];
+        }
+
+        bundle = bundle || resources;
+
+        const pathKey = getPackagePathKey(bundle, path);
+        let pkg: UIPackage = _instById[pathKey];
         if (pkg)
             return pkg;
 
-        let asset = resources.get(path, BufferAsset);
+        let asset = bundle.get(path, BufferAsset);
         if (!asset)
             throw new Error("Resource '" + path + "' not ready");
 
@@ -81,11 +102,14 @@ export class UIPackage {
             throw new Error("Missing asset data.");
 
         pkg = new UIPackage();
-        pkg._bundle = resources;
+        pkg._bundle = bundle;
+        pkg._pathKey = pathKey;
         pkg.loadPackage(new ByteBuffer(buffer), path);
         _instById[pkg.id] = pkg;
         _instByName[pkg.name] = pkg;
-        _instById[pkg._path] = pkg;
+        if (bundle == resources)
+            _instById[pkg._path] = pkg;
+        _instById[pkg._pathKey] = pkg;
         return pkg;
     }
 
@@ -152,6 +176,7 @@ export class UIPackage {
 
             let pkg: UIPackage = new UIPackage();
             pkg._bundle = bundle;
+            pkg._pathKey = getPackagePathKey(bundle, path);
             let buffer: ArrayBuffer = (<any>asset).buffer ? (<any>asset).buffer() : (<any>asset)._nativeAsset;
             pkg.loadPackage(new ByteBuffer(buffer), path);
             let cnt: number = pkg._items.length;
@@ -176,8 +201,10 @@ export class UIPackage {
                 if (total <= 0) {
                     _instById[pkg.id] = pkg;
                     _instByName[pkg.name] = pkg;
-                    if (pkg._path)
+                    if (pkg._path && bundle == resources)
                         _instById[pkg._path] = pkg;
+                    if (pkg._pathKey)
+                        _instById[pkg._pathKey] = pkg;
 
                     if (onComplete != null)
                         onComplete(lastErr, pkg);
@@ -203,8 +230,10 @@ export class UIPackage {
         pkg.dispose();
         delete _instById[pkg.id];
         delete _instByName[pkg.name];
-        if (pkg._path)
+        if (pkg._path && pkg._bundle == resources)
             delete _instById[pkg._path];
+        if (pkg._pathKey)
+            delete _instById[pkg._pathKey];
     }
 
     public static createObject(pkgName: string, resName: string, userClass?: new () => GObject): GObject {
@@ -877,6 +906,13 @@ var _instById: { [index: string]: UIPackage } = {};
 var _instByName: { [index: string]: UIPackage } = {};
 var _branch: string = "";
 var _vars: { [index: string]: string } = {};
+
+function getPackagePathKey(bundle: AssetManager.Bundle, path: string): string {
+    if (bundle == resources)
+        return path;
+
+    return bundle.name + "://" + path;
+}
 
 export interface IObjectFactoryType {
     resolveExtension(pi: PackageItem): void;

@@ -1,4 +1,4 @@
-import { gfx, UIRenderer, Event as Event$1, Vec2, Node, game, director, macro, Color, Layers, Font, resources, Vec3, Rect, UITransform, UIOpacity, Component, Graphics, misc, Sprite, Size, screen, view, ImageAsset, AudioClip, BufferAsset, AssetManager, Asset, assetManager, Texture2D, SpriteFrame, BitmapFont, sp, dragonBones, path, Label, SpriteAtlas, RichText, sys, EventMouse, EventTarget, Mask, math, isValid, View, AudioSourceComponent, EditBox, Overflow } from 'cc';
+import { gfx, UIRenderer, Event as Event$1, Vec2, Node, game, director, macro, Color, Layers, Font, resources, Vec3, Rect, UITransform, UIOpacity, Component, Graphics, misc, Sprite, Size, screen, view, ImageAsset, AudioClip, AssetManager, BufferAsset, Asset, assetManager, Texture2D, SpriteFrame, BitmapFont, sp, dragonBones, path, Label, SpriteAtlas, RichText, sys, EventMouse, EventTarget, Mask, math, isValid, View, AudioSourceComponent, EditBox, Overflow } from 'cc';
 import { EDITOR } from 'cc/env';
 
 var ButtonMode;
@@ -4565,6 +4565,45 @@ class GMovieClip extends GObject {
     }
 }
 
+class PixelHitTest {
+    constructor(data, offsetX, offsetY) {
+        this._data = data;
+        this.offsetX = offsetX == undefined ? 0 : offsetX;
+        this.offsetY = offsetY == undefined ? 0 : offsetY;
+        this.scaleX = 1;
+        this.scaleY = 1;
+    }
+    hitTest(pt) {
+        let x = Math.floor((pt.x / this.scaleX - this.offsetX) * this._data.scale);
+        let y = Math.floor((pt.y / this.scaleY - this.offsetY) * this._data.scale);
+        if (x < 0 || y < 0 || x >= this._data.pixelWidth)
+            return false;
+        var pos = y * this._data.pixelWidth + x;
+        var pos2 = Math.floor(pos / 8);
+        var pos3 = pos % 8;
+        if (pos2 >= 0 && pos2 < this._data.pixels.length)
+            return ((this._data.pixels[pos2] >> pos3) & 0x1) == 1;
+        else
+            return false;
+    }
+}
+class PixelHitTestData {
+    constructor(ba) {
+        ba.readInt();
+        this.pixelWidth = ba.readInt();
+        this.scale = 1 / ba.readByte();
+        this.pixels = ba.readBuffer().data;
+    }
+}
+class ChildHitArea {
+    constructor(child) {
+        this._child = child;
+    }
+    hitTest(pt, globalPt) {
+        return this._child.hitTest(globalPt, false) != null;
+    }
+}
+
 class UIContentScaler {
 }
 UIContentScaler.scaleFactor = 1;
@@ -4982,45 +5021,6 @@ class ByteBuffer {
     }
 }
 
-class PixelHitTest {
-    constructor(data, offsetX, offsetY) {
-        this._data = data;
-        this.offsetX = offsetX == undefined ? 0 : offsetX;
-        this.offsetY = offsetY == undefined ? 0 : offsetY;
-        this.scaleX = 1;
-        this.scaleY = 1;
-    }
-    hitTest(pt) {
-        let x = Math.floor((pt.x / this.scaleX - this.offsetX) * this._data.scale);
-        let y = Math.floor((pt.y / this.scaleY - this.offsetY) * this._data.scale);
-        if (x < 0 || y < 0 || x >= this._data.pixelWidth)
-            return false;
-        var pos = y * this._data.pixelWidth + x;
-        var pos2 = Math.floor(pos / 8);
-        var pos3 = pos % 8;
-        if (pos2 >= 0 && pos2 < this._data.pixels.length)
-            return ((this._data.pixels[pos2] >> pos3) & 0x1) == 1;
-        else
-            return false;
-    }
-}
-class PixelHitTestData {
-    constructor(ba) {
-        ba.readInt();
-        this.pixelWidth = ba.readInt();
-        this.scale = 1 / ba.readByte();
-        this.pixels = ba.readBuffer().data;
-    }
-}
-class ChildHitArea {
-    constructor(child) {
-        this._child = child;
-    }
-    hitTest(pt, globalPt) {
-        return this._child.hitTest(globalPt, false) != null;
-    }
-}
-
 var PathUtils = path;
 class UIPackage {
     constructor() {
@@ -5056,26 +5056,36 @@ class UIPackage {
     static getByName(name) {
         return _instByName[name];
     }
-    /**
-     * 注册一个包。包的所有资源必须放在resources下，且已经预加载。
-     * @param path 相对 resources 的路径。
-     */
-    static addPackage(path) {
-        let pkg = _instById[path];
+    static addPackage(...args) {
+        let bundle;
+        let path;
+        if (args[0] instanceof AssetManager.Bundle) {
+            bundle = args[0];
+            path = args[1];
+        }
+        else {
+            path = args[0];
+        }
+        bundle = bundle || resources;
+        const pathKey = getPackagePathKey(bundle, path);
+        let pkg = _instById[pathKey];
         if (pkg)
             return pkg;
-        let asset = resources.get(path, BufferAsset);
+        let asset = bundle.get(path, BufferAsset);
         if (!asset)
             throw new Error("Resource '" + path + "' not ready");
         const buffer = asset.buffer();
         if (!buffer)
             throw new Error("Missing asset data.");
         pkg = new UIPackage();
-        pkg._bundle = resources;
+        pkg._bundle = bundle;
+        pkg._pathKey = pathKey;
         pkg.loadPackage(new ByteBuffer(buffer), path);
         _instById[pkg.id] = pkg;
         _instByName[pkg.name] = pkg;
-        _instById[pkg._path] = pkg;
+        if (bundle == resources)
+            _instById[pkg._path] = pkg;
+        _instById[pkg._pathKey] = pkg;
         return pkg;
     }
     static loadPackage(...args) {
@@ -5111,6 +5121,7 @@ class UIPackage {
             }
             let pkg = new UIPackage();
             pkg._bundle = bundle;
+            pkg._pathKey = getPackagePathKey(bundle, path);
             let buffer = asset.buffer ? asset.buffer() : asset._nativeAsset;
             pkg.loadPackage(new ByteBuffer(buffer), path);
             let cnt = pkg._items.length;
@@ -5131,8 +5142,10 @@ class UIPackage {
                 if (total <= 0) {
                     _instById[pkg.id] = pkg;
                     _instByName[pkg.name] = pkg;
-                    if (pkg._path)
+                    if (pkg._path && bundle == resources)
                         _instById[pkg._path] = pkg;
+                    if (pkg._pathKey)
+                        _instById[pkg._pathKey] = pkg;
                     if (onComplete != null)
                         onComplete(lastErr, pkg);
                 }
@@ -5155,8 +5168,10 @@ class UIPackage {
         pkg.dispose();
         delete _instById[pkg.id];
         delete _instByName[pkg.name];
-        if (pkg._path)
+        if (pkg._path && pkg._bundle == resources)
             delete _instById[pkg._path];
+        if (pkg._pathKey)
+            delete _instById[pkg._pathKey];
     }
     static createObject(pkgName, resName, userClass) {
         var pkg = UIPackage.getByName(pkgName);
@@ -5710,6 +5725,11 @@ var _instById = {};
 var _instByName = {};
 var _branch = "";
 var _vars = {};
+function getPackagePathKey(bundle, path) {
+    if (bundle == resources)
+        return path;
+    return bundle.name + "://" + path;
+}
 var Decls = {};
 
 function toGrayedColor(c) {
