@@ -1,8 +1,8 @@
-import { Vec2, Rect, Component, director, Node, UITransform, UIOpacity, Vec3 } from "cc";
+import { Component, director, Node, Rect, UIOpacity, UITransform, Vec2, Vec3 } from "cc";
 import { Controller } from "./Controller";
 import { BlendMode, BlendModeUtils } from "./display/BlendMode";
 import { Event as FUIEvent } from "./event/Event";
-import { RelationType, ObjectPropID } from "./FieldTypes";
+import { ObjectPropID, RelationType } from "./FieldTypes";
 import { GComponent } from "./GComponent";
 import { GearAnimation } from "./gears/GearAnimation";
 import { GearBase } from "./gears/GearBase";
@@ -661,7 +661,7 @@ export class GObject {
     protected onDisable() {
     }
 
-    protected onUpdate() {
+    protected onUpdate(dt: number) {
     }
 
     protected onDestroy() {

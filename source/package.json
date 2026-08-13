@@ -1,28 +1,37 @@
 {
-  "name": "fairygui-cc",
-  "version": "1.2.2",
+  "name": "@gongxh/fairygui-cc",
+  "version": "0.0.2",
   "description": "A GUI Editor & framework for cocos creator",
-  "main": "dist/fairygui.mjs",
-  "types": "dist/fairygui.d.ts",
+  "main": "./dist/fairygui.mjs",
+  "module": "./dist/fairygui.mjs",
+  "types": "./dist/fairygui.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/fairygui.mjs",
+      "types": "./dist/fairygui.d.ts",
+      "default": "./dist/fairygui.mjs"
+    },
+    "./min": {
+      "import": "./dist/fairygui.min.mjs"
+    }
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/fairygui/FairyGUI-cocoscreator"
+    "url": "https://github.com/gongxh0901/FairyGUI-cocoscreator.git",
+    "directory": "source"
   },
   "files": [
-    "dist/fairygui.mjs",
-    "dist/fairygui.min.mjs",
-    "dist/fairygui.d.ts"
+    "dist"
   ],
   "scripts": {
-    "build": "gulp build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "gulp build"
   },
   "author": "guzhu",
   "license": "MIT",
   "homepage": "https://fairygui.com/",
-  "dependencies": {
-    "@types/node": "^14.0.1",
-    "lodash": "^4.17.15"
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.150",

@@ -4,7 +4,11 @@ const ts = require('gulp-typescript');
 const rename = require("gulp-rename");
 const uglify = require('gulp-uglify-es').default;
 const dts = require('dts-bundle')
+const fs = require('fs');
 const tsProject = ts.createProject('tsconfig.json', { declaration: true });
+
+const packageName = "@gongxh/fairygui-cc";
+const legacyPackageName = "fairygui-cc";
 
 const onwarn = warning => {
     // Silence circular dependency warning for moment package
@@ -40,7 +44,13 @@ gulp.task("uglify", function () {
 
 gulp.task('buildDts', function () {
     return new Promise(function (resolve, reject) {
-        dts.bundle({ name: "fairygui-cc", main: "./build/FairyGUI.d.ts", out: "../dist/fairygui.d.ts" });
+        dts.bundle({ name: packageName, main: "./build/FairyGUI.d.ts", out: "../dist/fairygui.d.ts" });
+
+        const dtsFile = "./dist/fairygui.d.ts";
+        const packageDeclarations = fs.readFileSync(dtsFile, "utf8");
+        const legacyDeclarations = packageDeclarations.replaceAll(packageName, legacyPackageName);
+        fs.writeFileSync(dtsFile, `${packageDeclarations}\n${legacyDeclarations}`);
+
         resolve();
     });
 })

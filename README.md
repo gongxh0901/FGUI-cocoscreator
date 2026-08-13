@@ -23,7 +23,18 @@ Official website: [www.fairygui.com](https://www.fairygui.com)
 * bin/fairygui.d.ts
 
 # 编译源码
-使用VSC打开source目录,执行gulp build任务.
+进入 `source` 目录，执行 `npm run build`，产物输出到 `source/dist`。
+
+# 发版
+使用 `/release [patch|minor|major]` 技能发版（默认 patch）。
+
+流程：升级 `source/package.json` 版本号 → 生成 CHANGELOG → 构建到 `source/dist` → 提交并打 tag。
+
+因 npm OTP 限制，tag 推送后需手动发布：
+
+```bash
+cd source && npm publish
+```
 
 # License
 MIT
