@@ -1,0 +1,59 @@
+name: Publish to npmjs
+
+# 推送 v* tag 时发布 @gongxh/fairygui-cc 到 npmjs。
+#
+# 使用 npm trusted publishing（OIDC），不需要 NPM_TOKEN。
+# 前置：在 npmjs.com 给 @gongxh/fairygui-cc 配置 trusted publisher
+#   Publisher:            GitHub Actions
+#   Organization or user: gongxh0901
+#   Repository:           FGUI-cocoscreator
+#   Workflow filename:    publish.yml
+#   Environment name:     留空
+#   Allowed actions:      Allow npm publish
+#
+# 不在 CI 里构建：source/dist 已入库，由 bit-framework 的 /release 流程
+# 在本机 pnpm build 后一并提交。gulp 4 在新版 Node 上兼容性不稳，
+# 跳过构建可减少失败点。
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write # trusted publishing 需要
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # trusted publishing 要求 npm >= 11.5.1、Node >= 22.14.0
+      # 不设 registry-url：它会写一份带 ${NODE_AUTH_TOKEN} 的 .npmrc，
+      # 而 trusted publishing 不用 token，空值会让后续 npm 命令鉴权失败。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+
+      - name: Upgrade npm
+        run: npm install -g npm@11
+
+      - name: Verify npm version
+        run: npm -v
+
+      # 入库的 dist 必须存在，否则发出去的包是空的
+      - name: Verify dist exists
+        working-directory: source
+        run: |
+          test -f dist/fairygui.mjs
+          test -f dist/fairygui.d.ts
+          test -f dist/fairygui.min.mjs
+          ls -la dist
+
+      # provenance 与 access 已在 source/package.json 的 publishConfig 中声明
+      - name: Publish
+        working-directory: source
+        run: npm publish

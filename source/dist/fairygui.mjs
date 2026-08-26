@@ -2978,7 +2978,7 @@ class GObject {
     }
     onDisable() {
     }
-    onUpdate() {
+    onUpdate(dt) {
     }
     onDestroy() {
     }

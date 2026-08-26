@@ -95,7 +95,7 @@ declare module '@gongxh/fairygui-cc/GGroup' {
 }
 
 declare module '@gongxh/fairygui-cc/GObject' {
-    import { Vec2, Rect, Component, Node, UITransform, UIOpacity } from "cc";
+    import { Component, Node, Rect, UIOpacity, UITransform, Vec2 } from "cc";
     import { Controller } from "@gongxh/fairygui-cc/Controller";
     import { BlendMode } from "@gongxh/fairygui-cc/display/BlendMode";
     import { GComponent } from "@gongxh/fairygui-cc/GComponent";
@@ -247,7 +247,7 @@ declare module '@gongxh/fairygui-cc/GObject' {
         dispose(): void;
         protected onEnable(): void;
         protected onDisable(): void;
-        protected onUpdate(): void;
+        protected onUpdate(dt: number): void;
         protected onDestroy(): void;
         onClick(listener: Function, target?: any): void;
         onceClick(listener: Function, target?: any): void;
@@ -2476,7 +2476,7 @@ declare module 'fairygui-cc/GGroup' {
 }
 
 declare module 'fairygui-cc/GObject' {
-    import { Vec2, Rect, Component, Node, UITransform, UIOpacity } from "cc";
+    import { Component, Node, Rect, UIOpacity, UITransform, Vec2 } from "cc";
     import { Controller } from "fairygui-cc/Controller";
     import { BlendMode } from "fairygui-cc/display/BlendMode";
     import { GComponent } from "fairygui-cc/GComponent";
@@ -2628,7 +2628,7 @@ declare module 'fairygui-cc/GObject' {
         dispose(): void;
         protected onEnable(): void;
         protected onDisable(): void;
-        protected onUpdate(): void;
+        protected onUpdate(dt: number): void;
         protected onDestroy(): void;
         onClick(listener: Function, target?: any): void;
         onceClick(listener: Function, target?: any): void;
