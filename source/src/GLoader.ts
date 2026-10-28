@@ -252,8 +252,9 @@ export class GLoader extends GObject {
         this._content.spriteFrame = value;
         this._content.type = Sprite.Type.SIMPLE;
         if (value != null) {
-            this.sourceWidth = value.rect.width;
-            this.sourceHeight = value.rect.height;
+            // 内容保留原图透明边距，布局也使用原始尺寸，避免自动裁剪后的图片比例失真。
+            this.sourceWidth = value.originalSize.width;
+            this.sourceHeight = value.originalSize.height;
         }
         else {
             this.sourceWidth = this.sourceHeight = 0;
