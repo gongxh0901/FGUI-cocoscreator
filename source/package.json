@@ -17,8 +17,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gongxh0901/FGUI-cocoscreator.git",
-    "directory": "source"
+    "url": "git+https://github.com/gongxh0901/bit-framework.git",
+    "directory": "vendor/fairygui-cc/source"
   },
   "files": [
     "dist"
