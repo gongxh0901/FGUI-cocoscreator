@@ -13953,16 +13953,29 @@ class GList extends GComponent {
         }
     }
     onClickItem(evt) {
-        if (this._scrollPane && this._scrollPane.isDragged)
+        var _a;
+        // 子按钮可能在点击冒泡到列表项之前同步关闭窗口。
+        if (this.isDisposed || ((_a = this._scrollPane) === null || _a === void 0 ? void 0 : _a.isDragged)) {
             return;
+        }
         var item = GObject.cast(evt.currentTarget);
+        if ((item === null || item === void 0 ? void 0 : item.parent) !== this) {
+            return;
+        }
         this.setSelectionOnEvent(item, evt);
+        // 选中状态会同步通知绑定的控制器，回调可能关闭窗口或移除列表项。
+        if (this.isDisposed || item.parent !== this) {
+            return;
+        }
         if (this._scrollPane && this.scrollItemToViewOnClick)
             this._scrollPane.scrollToView(item, true);
-        this.dispatchItemEvent(item, evt);
+        if (!this.isDisposed && item.parent === this) {
+            this.dispatchItemEvent(item, evt);
+        }
     }
     dispatchItemEvent(item, evt) {
-        this._node.emit(Event.CLICK_ITEM, item, evt);
+        var _a;
+        (_a = this._node) === null || _a === void 0 ? void 0 : _a.emit(Event.CLICK_ITEM, item, evt);
     }
     setSelectionOnEvent(item, evt) {
         if (!(item instanceof GButton) || this._selectionMode == ListSelectionMode.None)

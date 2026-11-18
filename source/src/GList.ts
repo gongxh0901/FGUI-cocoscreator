@@ -1,7 +1,7 @@
-import { Size, Vec2, Rect, Node, Constructor } from "cc";
+import { Node, Rect, Size, Vec2 } from "cc";
 import { Controller } from "./Controller";
 import { Event as FUIEvent } from "./event/Event";
-import { ListLayoutType, ListSelectionMode, AlignType, VertAlignType, ChildrenRenderOrder, OverflowType } from "./FieldTypes";
+import { AlignType, ChildrenRenderOrder, ListLayoutType, ListSelectionMode, OverflowType, VertAlignType } from "./FieldTypes";
 import { GButton } from "./GButton";
 import { GComponent } from "./GComponent";
 import { GObject } from "./GObject";
@@ -630,20 +630,29 @@ export class GList extends GComponent {
     }
 
     private onClickItem(evt: FUIEvent): void {
-        if (this._scrollPane && this._scrollPane.isDragged)
+        // 子按钮可能在点击冒泡到列表项之前同步关闭窗口。
+        if (this.isDisposed || this._scrollPane?.isDragged) {
             return;
-
+        }
         var item: GObject = GObject.cast(<Node>evt.currentTarget);
+        if (item?.parent !== this) {
+            return;
+        }
         this.setSelectionOnEvent(item, evt);
-
+        // 选中状态会同步通知绑定的控制器，回调可能关闭窗口或移除列表项。
+        if (this.isDisposed || item.parent !== this) {
+            return;
+        }
         if (this._scrollPane && this.scrollItemToViewOnClick)
             this._scrollPane.scrollToView(item, true);
 
-        this.dispatchItemEvent(item, evt);
+        if (!this.isDisposed && item.parent === this) {
+            this.dispatchItemEvent(item, evt);
+        }
     }
 
     protected dispatchItemEvent(item: GObject, evt: FUIEvent): void {
-        this._node.emit(FUIEvent.CLICK_ITEM, item, evt);
+        this._node?.emit(FUIEvent.CLICK_ITEM, item, evt);
     }
 
     private setSelectionOnEvent(item: GObject, evt: FUIEvent): void {

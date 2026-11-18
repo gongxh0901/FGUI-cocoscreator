@@ -1016,7 +1016,7 @@ declare module '@gongxh/fairygui-cc/GList' {
     import { Size, Vec2 } from "cc";
     import { Controller } from "@gongxh/fairygui-cc/Controller";
     import { Event as FUIEvent } from "@gongxh/fairygui-cc/event/Event";
-    import { ListLayoutType, ListSelectionMode, AlignType, VertAlignType } from "@gongxh/fairygui-cc/FieldTypes";
+    import { AlignType, ListLayoutType, ListSelectionMode, VertAlignType } from "@gongxh/fairygui-cc/FieldTypes";
     import { GComponent } from "@gongxh/fairygui-cc/GComponent";
     import { GObject } from "@gongxh/fairygui-cc/GObject";
     import { GObjectPool } from "@gongxh/fairygui-cc/GObjectPool";
@@ -3397,7 +3397,7 @@ declare module 'fairygui-cc/GList' {
     import { Size, Vec2 } from "cc";
     import { Controller } from "fairygui-cc/Controller";
     import { Event as FUIEvent } from "fairygui-cc/event/Event";
-    import { ListLayoutType, ListSelectionMode, AlignType, VertAlignType } from "fairygui-cc/FieldTypes";
+    import { AlignType, ListLayoutType, ListSelectionMode, VertAlignType } from "fairygui-cc/FieldTypes";
     import { GComponent } from "fairygui-cc/GComponent";
     import { GObject } from "fairygui-cc/GObject";
     import { GObjectPool } from "fairygui-cc/GObjectPool";
